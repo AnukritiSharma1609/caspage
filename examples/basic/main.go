@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gocql/gocql"
 	"github.com/AnukritiSharma1609/caspage/core"
+	"github.com/gocql/gocql"
 )
 
 func main() {
@@ -25,6 +25,5 @@ func main() {
 		log.Fatalf("error fetching page: %v", err)
 	}
 
-	fmt.Printf("Fetched %d rows. Next token: %v\n", len(results), next != nil)
+	fmt.Printf("Fetched %d rows. Next token: %v\n", len(results), next != "")
 }
-
