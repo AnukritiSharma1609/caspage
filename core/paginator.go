@@ -69,7 +69,6 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 	return results, EncodeToken(next), nil
 }
 
-
 // Stateful convenience wrapper (calls the stateless version internally)
 func (p *Paginator) Next() ([]map[string]interface{}, string, error) {
 	// empty token = start from beginning
@@ -89,5 +88,3 @@ func (p *Paginator) Previous(currentToken string) ([]map[string]interface{}, str
 
 	return results, nextToken, nil
 }
-
-
