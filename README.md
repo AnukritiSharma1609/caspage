@@ -10,3 +10,8 @@
 - Prometheus metrics for observability
 
 ## 📦 Installation
+
+### Examples
+- 🧩 **Basic Pagination:** [examples/basic](examples/basic/main.go)
+- ⚙️ **REST API with Filters, Metrics & Logging:** [examples/rest_api](examples/rest_api/main.go)
+

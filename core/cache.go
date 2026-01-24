@@ -1,6 +1,9 @@
 package core
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 // TokenCache stores the last N tokens for backward navigation.
 // It's a simple, thread-safe in-memory list.
@@ -41,6 +44,9 @@ func (c *TokenCache) Add(token string) {
 		c.tokens = c.tokens[1:]
 	}
 	c.tokens = append(c.tokens, token)
+
+	fmt.Println("Cache contents:", c.tokens)
+
 }
 
 // Previous returns the token before the given one, if available.
@@ -53,6 +59,9 @@ func (c *TokenCache) Previous(current string) (string, bool) {
 			return c.tokens[i-1], true
 		}
 	}
+
+	fmt.Println("Cache contents:", c.tokens)
+
 	return "", false
 }
 
@@ -65,4 +74,10 @@ func (c *TokenCache) Last() string {
 		return ""
 	}
 	return c.tokens[len(c.tokens)-1]
+}
+
+func (c *TokenCache) Size() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.tokens)
 }
