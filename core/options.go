@@ -1,8 +1,15 @@
 package core
 
-// Options defines configuration parameters for pagination behavior.
+import (
+	"context"
+)
+
+// Options holds configuration for the paginator.
 type Options struct {
-	// PageSize determines how many rows to fetch per page.
-	// Default: 100 if not specified.
 	PageSize int
+	Filters  map[string]interface{}
+	Columns  []string
+	Context  context.Context
+	Logger   func(event string, data map[string]interface{})
+	Metrics  MetricsCollector // optional metrics hook
 }
