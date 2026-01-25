@@ -50,4 +50,3 @@ func TestTokenCache_Last(t *testing.T) {
 		t.Errorf("expected last token 't2', got %s", last)
 	}
 }
-
