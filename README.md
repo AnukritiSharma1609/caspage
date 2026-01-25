@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/AnukritiSharma1609/caspage/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/AnukritiSharma1609/caspage)
+
 # caspage
 
 > A developer-friendly Go library for efficient and stateless pagination in Cassandra, built on top of gocql.

@@ -1,0 +1,56 @@
+name: CI - Lint, Test & Coverage
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+    steps:
+      # -----------------------------
+      # 🧰 1. Checkout repo
+      # -----------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------
+      # 🧩 2. Set up Go
+      # -----------------------------
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      # -----------------------------
+      # 🧼 3. Install golangci-lint
+      # -----------------------------
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          skip-cache: false
+          args: --timeout=3m
+
+      # -----------------------------
+      # 🧪 4. Run unit tests with coverage
+      # -----------------------------
+      - name: Run tests with coverage
+        run: |
+          go test ./... -v -coverprofile=coverage.out
+          go tool cover -func=coverage.out
+
+      # -----------------------------
+      # 📊 5. Upload coverage to Codecov
+      # -----------------------------
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.out
+          flags: unittests
+          fail_ci_if_error: true
+          verbose: true
