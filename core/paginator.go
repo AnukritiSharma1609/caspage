@@ -2,34 +2,31 @@ package core
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
-
-	"github.com/gocql/gocql"
 )
 
 type Paginator struct {
-	session  *gocql.Session
-	query    string
-	pageSize int
-	cache    *TokenCache
-	opts     Options
+	Session  CassandraSession
+	Query    string
+	PageSize int
+	Cache    *TokenCache
+	Opts     Options
 }
 
 // NewPaginator now initializes a cache too
-func NewPaginator(session *gocql.Session, query string, opts Options) *Paginator {
-	pageSize := opts.PageSize
+func NewPaginator(session CassandraSession, query string, Opts Options) *Paginator {
+	pageSize := Opts.PageSize
 	if pageSize <= 0 {
 		pageSize = 100
 	}
 
 	return &Paginator{
-		session:  session,
-		query:    query,
-		pageSize: pageSize,
-		cache:    NewTokenCache(10), // keep history of 10 tokens
-		opts:     opts,
+		Session:  session,
+		Query:    query,
+		PageSize: pageSize,
+		Cache:    NewTokenCache(10), // keep history of 10 tokens
+		Opts:     Opts,
 	}
 }
 
@@ -38,10 +35,10 @@ func (p *Paginator) NextWithToken(token string) ([]map[string]interface{}, strin
 	if err != nil {
 		return nil, "", err
 	}
-	p.cache.Add(nextToken)
+	p.Cache.Add(nextToken)
 
-	if p.opts.Metrics != nil {
-		p.opts.Metrics.ObserveActiveTokens(p.cache.Size())
+	if p.Opts.Metrics != nil {
+		p.Opts.Metrics.ObserveActiveTokens(p.Cache.Size())
 	}
 	return results, nextToken, nil
 }
@@ -59,26 +56,26 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 				"token": token,
 				"error": err.Error(),
 			})
-			if p.opts.Metrics != nil {
-				p.opts.Metrics.ObserveError(ErrInvalidToken)
+			if p.Opts.Metrics != nil {
+				p.Opts.Metrics.ObserveError(ErrInvalidToken)
 			}
 			return nil, "", ErrInvalidToken
 		}
 	}
 
 	// 2️⃣ Build the query string dynamically (columns + filters)
-	queryStr := p.query
+	queryStr := p.Query
 
 	// Replace "*" with selected columns if provided
-	if len(p.opts.Columns) > 0 {
-		queryStr = strings.Replace(queryStr, "*", strings.Join(p.opts.Columns, ", "), 1)
+	if len(p.Opts.Columns) > 0 {
+		queryStr = strings.Replace(queryStr, "*", strings.Join(p.Opts.Columns, ", "), 1)
 	}
 
 	// Use helper to build WHERE/AND clauses dynamically
-	queryStr, bindValues := buildQueryWithFilters(queryStr, p.opts.Filters)
+	queryStr, bindValues := buildQueryWithFilters(queryStr, p.Opts.Filters)
 
 	// Initialize query with optional bound values
-	q := p.session.Query(queryStr, bindValues...).PageSize(p.pageSize)
+	q := p.Session.Query(queryStr, bindValues...).PageSize(p.PageSize)
 
 	// 3️⃣ Apply page state if resuming from token
 	if len(state) > 0 {
@@ -86,8 +83,8 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 	}
 
 	// 4️⃣ Apply context if present (for timeout/cancellation)
-	if p.opts.Context != nil {
-		q = q.WithContext(p.opts.Context)
+	if p.Opts.Context != nil {
+		q = q.WithContext(p.Opts.Context)
 	}
 
 	start := time.Now()
@@ -101,7 +98,7 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 		results = append(results, row)
 		row = map[string]interface{}{}
 		count++
-		if count >= p.pageSize {
+		if count >= p.PageSize {
 			break
 		}
 	}
@@ -114,12 +111,12 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 		p.log("query_failed", map[string]interface{}{
 			"query":     queryStr,
 			"error":     err.Error(),
-			"filters":   p.opts.Filters,
+			"filters":   p.Opts.Filters,
 			"duration":  duration.Milliseconds(),
-			"page_size": p.pageSize,
+			"page_size": p.PageSize,
 		})
-		if p.opts.Metrics != nil {
-			p.opts.Metrics.ObserveError(ErrQueryFailed)
+		if p.Opts.Metrics != nil {
+			p.Opts.Metrics.ObserveError(ErrQueryFailed)
 		}
 		return nil, "", ErrQueryFailed
 	}
@@ -129,12 +126,12 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 		"rows_fetched":  len(results),
 		"next_token":    len(next) > 0,
 		"duration_ms":   duration.Milliseconds(),
-		"query_filters": p.opts.Filters,
+		"query_filters": p.Opts.Filters,
 	})
 
 	// 7️⃣ Record metrics
-	if p.opts.Metrics != nil {
-		p.opts.Metrics.ObservePageFetch(len(results), duration)
+	if p.Opts.Metrics != nil {
+		p.Opts.Metrics.ObservePageFetch(len(results), duration)
 	}
 
 	return results, EncodeToken(next), nil
@@ -142,8 +139,8 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 
 // log safely invokes the optional logger hook.
 func (p *Paginator) log(event string, data map[string]interface{}) {
-	if p.opts.Logger != nil {
-		p.opts.Logger(event, data)
+	if p.Opts.Logger != nil {
+		p.Opts.Logger(event, data)
 	}
 }
 
@@ -154,9 +151,9 @@ func (p *Paginator) Next() ([]map[string]interface{}, string, error) {
 }
 
 func (p *Paginator) Previous(currentToken string) ([]map[string]interface{}, string, error) {
-	prevToken, ok := p.cache.Previous(currentToken)
+	prevToken, ok := p.Cache.Previous(currentToken)
 	if !ok {
-		return nil, "", fmt.Errorf("no previous token found for %q", currentToken)
+		return nil, "", fmt.Errorf("%w: %q", ErrNoPrevToken, prevToken)
 	}
 
 	results, nextToken, err := p.fetchWithToken(prevToken)
@@ -165,82 +162,4 @@ func (p *Paginator) Previous(currentToken string) ([]map[string]interface{}, str
 	}
 
 	return results, nextToken, nil
-}
-
-// buildQueryWithFilters dynamically appends WHERE/AND clauses to the base query
-// using the provided filters map. Supports operators like =, >, <, >=, <=, and IN.
-// Example:
-//
-//	baseQuery: "SELECT * FROM users"
-//	filters: map[string]interface{}{"age >": 25, "region IN": []string{"US", "CA"}}
-//
-// Result:
-//
-//	queryStr: "SELECT * FROM users WHERE age > ? AND region IN (?, ?)"
-//	values:   [25, "US", "CA"]
-func buildQueryWithFilters(baseQuery string, filters map[string]interface{}) (string, []interface{}) {
-	if len(filters) == 0 {
-		return baseQuery, nil
-	}
-
-	whereClauses := []string{}
-	values := []interface{}{}
-
-	for k, v := range filters {
-		key := strings.TrimSpace(k)
-		operator := "=" // default
-
-		// Extract operator if present
-		for _, op := range []string{">=", "<=", ">", "<", "IN"} {
-			if strings.HasSuffix(strings.ToUpper(key), op) {
-				operator = op
-				key = strings.TrimSpace(strings.TrimSuffix(key, op))
-				break
-			}
-		}
-
-		switch strings.ToUpper(operator) {
-		case "IN":
-			// Handle slice or array values for IN
-			valSlice, ok := anyToSlice(v)
-			if !ok || len(valSlice) == 0 {
-				continue // skip invalid or empty IN filters
-			}
-			placeholders := make([]string, len(valSlice))
-			for i := range valSlice {
-				placeholders[i] = "?"
-			}
-			whereClauses = append(whereClauses, key+" IN ("+strings.Join(placeholders, ", ")+")")
-			values = append(values, valSlice...)
-
-		default:
-			// Basic comparison: =, >, <, >=, <=
-			whereClauses = append(whereClauses, key+" "+operator+" ?")
-			values = append(values, v)
-		}
-	}
-
-	queryLower := strings.ToLower(baseQuery)
-	if strings.Contains(queryLower, "where") {
-		baseQuery += " AND " + strings.Join(whereClauses, " AND ")
-	} else {
-		baseQuery += " WHERE " + strings.Join(whereClauses, " AND ")
-	}
-
-	return baseQuery, values
-}
-
-// anyToSlice converts any slice/array into []interface{} for binding.
-// Returns (nil, false) if the input is not slice-like.
-func anyToSlice(v interface{}) ([]interface{}, bool) {
-	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Slice && rv.Kind() != reflect.Array {
-		return nil, false
-	}
-
-	out := make([]interface{}, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		out[i] = rv.Index(i).Interface()
-	}
-	return out, true
 }

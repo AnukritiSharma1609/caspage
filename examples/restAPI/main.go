@@ -50,7 +50,7 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		p := core.NewPaginator(session, "SELECT * FROM user_role_mapping_v2", core.Options{
+		p := core.NewPaginator(&core.RealSession{Session: session}, "SELECT * FROM user_role_mapping_v2", core.Options{
 			PageSize: pageSize,
 			Context:  ctx,
 			Filters:  filters,

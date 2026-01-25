@@ -17,7 +17,7 @@ func main() {
 	cluster := gocql.NewCluster("127.0.0.1")
 	cluster.Keyspace = "merchant_platform"
 	session, err := cluster.CreateSession()
-	paginator := core.NewPaginator(session, "SELECT * FROM user_role_mapping_v2", core.Options{PageSize: 10})
+	paginator := core.NewPaginator(&core.RealSession{Session: session}, "SELECT * FROM user_role_mapping_v2", core.Options{PageSize: 10})
 	if err != nil {
 		log.Fatalf("Failed to connect to Cassandra: %v", err)
 	}
