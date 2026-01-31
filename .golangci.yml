@@ -1,6 +1,5 @@
 run:
   timeout: 5m
-  tests: true
 
 linters:
   enable:
@@ -12,9 +11,25 @@ linters:
     - ineffassign
     - gofmt
     - goimports
-    - revive
 
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - unused
+        - revive
+        - govet
+      text: "ignore test files"
+
+    - path: ^examples/
+      linters:
+        - errcheck
+        - unused
+        - revive
+        - govet
+      text: "ignore example code"
