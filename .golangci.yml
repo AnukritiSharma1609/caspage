@@ -19,6 +19,17 @@ issues:
 
   exclude-rules:
     - path: _test\.go
-      text: ""
+      linters:
+        - errcheck
+        - unused
+        - revive
+        - govet
+      text: "ignore test files"
+
     - path: ^examples/
-      text: ""
+      linters:
+        - errcheck
+        - unused
+        - revive
+        - govet
+      text: "ignore example code"
