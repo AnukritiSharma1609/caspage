@@ -1,16 +1,21 @@
 codecov:
-  enabled: true
+  require_ci_to_pass: yes
 
 coverage:
+  precision: 2
+  round: down
+  range: "60...90"
+
   status:
     project:
       default:
         target: auto
+        threshold: 5%
     patch:
       default:
         target: auto
-  
-  exclude:
-    - "examples/*"
-    - "LICENSE"
-    - "README.md"
+
+ignore:
+  - "examples/"
+  - "LICENSE"
+  - "README.md"
