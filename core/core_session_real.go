@@ -47,5 +47,5 @@ type RealIter struct {
 }
 
 func (i *RealIter) MapScan(m map[string]interface{}) bool { return i.Iter.MapScan(m) }
-func (i *RealIter) PageState() []byte                    { return i.Iter.PageState() }
-func (i *RealIter) Close() error                         { return i.Iter.Close() }
+func (i *RealIter) PageState() []byte                     { return i.Iter.PageState() }
+func (i *RealIter) Close() error                          { return i.Iter.Close() }

@@ -1,4 +1,4 @@
-name: CI - Lint, Test & Coverage
+name: CI - Build, Lint, and Test
 
 on:
   push:
@@ -7,45 +7,62 @@ on:
     branches: [ main ]
 
 jobs:
-  build-test-lint:
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
-      # -----------------------------
-      # 🧰 1. Checkout repo
-      # -----------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # -----------------------------
-      # 🧩 2. Set up Go
-      # -----------------------------
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
           cache: true
 
-      # -----------------------------
-      # 🧼 3. Install golangci-lint
-      # -----------------------------
-      - name: Install golangci-lint
+      - name: Verify build
+        run: |
+          go mod tidy
+          go build ./...
+          echo "Build successful"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
-          skip-cache: false
           args: --timeout=3m
 
-      # -----------------------------
-      # 🧪 4. Run unit tests with coverage
-      # -----------------------------
-      - name: Run tests with coverage
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    needs: [build, lint] # Run only after build and lint succeed
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run unit tests with coverage
         run: |
           go test ./... -v -coverprofile=coverage.out
           go tool cover -func=coverage.out
+          ls -lh coverage.out
 
-      # -----------------------------
-      # 📊 5. Upload coverage to Codecov
-      # -----------------------------
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

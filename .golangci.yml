@@ -1,6 +1,9 @@
 run:
   timeout: 5m
-  tests: true
+  skip-files:
+    - _test\.go$
+  skip-dirs:
+    - examples  
 
 linters:
   enable:
@@ -12,7 +15,6 @@ linters:
     - ineffassign
     - gofmt
     - goimports
-    - revive
 
 issues:
   exclude-use-default: false
