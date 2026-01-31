@@ -19,3 +19,4 @@ ignore:
   - "examples/"
   - "LICENSE"
   - "README.md"
+  - "core/core_session_real.go"
