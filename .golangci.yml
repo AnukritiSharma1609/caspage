@@ -1,9 +1,5 @@
 run:
   timeout: 5m
-  skip-files:
-    - _test\.go$
-  skip-dirs:
-    - examples  
 
 linters:
   enable:
@@ -20,3 +16,9 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+
+  exclude-rules:
+    - path: _test\.go
+      text: ""
+    - path: ^examples/
+      text: ""
