@@ -1,4 +1,8 @@
-[![codecov](https://codecov.io/gh/AnukritiSharma1609/caspage/branch/main/graph/badge.svg](https://codecov.io/gh/AnukritiSharma1609/caspage)
+[![Go Build](https://github.com/AnukritiSharma1609/caspage/actions/workflows/ci.yml/badge.svg)](https://github.com/AnukritiSharma1609/caspage/actions)
+[![codecov](https://codecov.io/gh/AnukritiSharma1609/caspage/branch/main/graph/badge.svg)](https://codecov.io/gh/AnukritiSharma1609/caspage)
+[![Go Reference](https://pkg.go.dev/badge/github.com/AnukritiSharma1609/caspage.svg)](https://pkg.go.dev/github.com/AnukritiSharma1609/caspage)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 
 # caspage
 
