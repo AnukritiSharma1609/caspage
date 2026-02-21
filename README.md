@@ -14,7 +14,7 @@ It provides **stateful and stateless pagination**, dynamic query filters, contex
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
 - [Why caspage?](#-why-caspage)
 - [Features](#-features)
@@ -30,7 +30,7 @@ It provides **stateful and stateless pagination**, dynamic query filters, contex
 
 ---
 
-## 🤔 Why caspage?
+## Why caspage?
 
 Pagination in Cassandra using `gocql` has always been tricky:
 
@@ -46,23 +46,23 @@ Pagination in Cassandra using `gocql` has always been tricky:
 
 ---
 
-## ✨ Features
+## Features
 
-- ✅ **Simple API** – Paginate results using just `Next()` or `NextWithToken()`
-- ✅ **Stateless pagination** – Tokens can be safely shared via REST APIs
-- ✅ **Bidirectional navigation** – Move forward and backward between pages
-- ✅ **Dynamic filters** – Add `WHERE` clauses with operators (`=`, `>`, `<`, `>=`, `<=`, `IN`)
-- ✅ **Token cache** – Keep track of visited tokens in memory for backward navigation
-- ✅ **Context-aware queries** – Use `context.Context` for safe cancellations and timeouts
-- ✅ **Metrics hooks** – Plug in Prometheus (or any custom collector) easily
-- ✅ **Structured logging** – Log query performance and pagination details
-- ✅ **Column selection** – Fetch only specific columns to reduce payload size
-- ✅ **Production-ready** – Thread-safe, tested, and optimized for high throughput
-- ✅ **Drop-in compatible** – Works with existing `gocql` code, no schema changes needed
+- **Simple API** – Paginate results using just `Next()` or `NextWithToken()`
+- **Stateless pagination** – Tokens can be safely shared via REST APIs
+- **Bidirectional navigation** – Move forward and backward between pages
+- **Dynamic filters** – Add `WHERE` clauses with operators (`=`, `>`, `<`, `>=`, `<=`, `IN`)
+- **Token cache** – Keep track of visited tokens in memory for backward navigation
+- **Context-aware queries** – Use `context.Context` for safe cancellations and timeouts
+- **Metrics hooks** – Plug in Prometheus (or any custom collector) easily
+- **Structured logging** – Log query performance and pagination details
+- **Column selection** – Fetch only specific columns to reduce payload size
+- **Production-ready** – Thread-safe, tested, and optimized for high throughput
+- **Drop-in compatible** – Works with existing `gocql` code, no schema changes needed
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 go get github.com/AnukritiSharma1609/caspage
@@ -74,7 +74,7 @@ go get github.com/AnukritiSharma1609/caspage
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```go
 package main
@@ -127,7 +127,7 @@ func main() {
 
 ---
 
-## 📚 Usage Examples
+## Usage Examples
 
 ### Basic Pagination
 
@@ -324,7 +324,7 @@ curl http://localhost:8080/api/users?pageToken=<token_from_previous_response>
 
 ---
 
-## 📘 API Reference
+## API Reference
 
 ### Core Types
 
@@ -421,7 +421,7 @@ var (
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Page Size
 
@@ -464,13 +464,13 @@ SELECT * FROM users WHERE age >= ? AND status = ? AND region IN (?, ?)
 
 ---
 
-## 🛡️ Production Features
+## Production Features
 
 ### Thread Safety
 
-- ✅ `TokenCache` is protected by a mutex
-- ✅ Safe for concurrent requests
-- ⚠️ Each paginator instance maintains its own cache
+- `TokenCache` is protected by a mutex
+- Safe for concurrent requests
+- Each paginator instance maintains its own cache
 
 ### Error Handling
 
@@ -510,7 +510,7 @@ if err != nil {
 
 ---
 
-## 📂 Examples
+## Examples
 
 The [`examples/`](examples/) directory contains fully functional demos:
 
@@ -534,7 +534,7 @@ curl http://localhost:8080/metrics  # Prometheus metrics
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -552,7 +552,7 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 ```bash
 # Run all tests
@@ -568,24 +568,22 @@ go tool cover -html=coverage.out
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🌟 Acknowledgments
+## Acknowledgments
 
 Built on top of the excellent [`gocql`](https://github.com/gocql/gocql) driver.
 
 ---
 
-## 📞 Support
+## Support
 
 - **Issues:** [GitHub Issues](https://github.com/AnukritiSharma1609/caspage/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/AnukritiSharma1609/caspage/discussions)
 - **Documentation:** [pkg.go.dev](https://pkg.go.dev/github.com/AnukritiSharma1609/caspage)
 
 ---
-
-**Made with ❤️ for the Cassandra community**
