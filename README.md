@@ -530,11 +530,12 @@ SELECT * FROM users WHERE age >= ? AND status = ? AND region IN (?, ?)
 - Each paginator instance maintains its own cache
 - Each paginator instance is independent
 - Truly Stateless Backward Navigation
-- Unlike pagination libraries that rely on server-side caches, caspage embeds the previous token directly in each pagination token. This means:
-No in-memory cache required
-Works across horizontally scaled services behind a load balancer
-No shared state (Redis, Memcached) needed
-Tokens are fully self-contained and portable
+- Unlike pagination libraries that rely on server-side caches, caspage embeds the previous token directly in each pagination token. 
+- This means:
+1) No in-memory cache required
+2) Works across horizontally scaled services behind a load balancer
+3) No shared state (Redis, Memcached) needed
+4) Tokens are fully self-contained and portable
 
 ### Error Handling
 
@@ -579,6 +580,7 @@ The [`examples/`](examples/) directory contains fully functional demos:
 
 - **[`basic/main.go`](examples/basic/main.go)** – Simple pagination with Gin
 - **[`restAPI/main.go`](examples/restAPI/main.go)** – Complete REST API with filters, logging, and Prometheus metrics
+- **[`restAPI/main.go`](examples/generics/main.go)** – Type-safe pagination using Go generics (`NextAs[T]`)
 
 **Run the REST API example:**
 

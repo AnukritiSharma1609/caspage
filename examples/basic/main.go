@@ -29,7 +29,7 @@ func main() {
 		core.Options{PageSize: 10})
 
 	// ------------------------------
-	// 🥇 Example 1 — Next() (start fresh)
+	// Example 1 — Next() (start fresh)
 	// ------------------------------
 	r.GET("/users/basic", func(c *gin.Context) {
 		results, nextToken, err := paginator.Next()
@@ -44,7 +44,7 @@ func main() {
 	})
 
 	// ------------------------------
-	// 🥈 Example 2 — NextWithToken() (stateless forward)
+	// Example 2 — NextWithToken() (stateless forward)
 	// ------------------------------
 	r.GET("/users", func(c *gin.Context) {
 		token := c.Query("pageToken")
@@ -60,7 +60,7 @@ func main() {
 	})
 
 	// ------------------------------
-	// 🥉 Example 3 — Previous() (stateless backward)
+	// Example 3 — Previous() (stateless backward)
 	// ------------------------------
 	r.GET("/users/previous", func(c *gin.Context) {
 		token := c.Query("pageToken")
@@ -76,7 +76,7 @@ func main() {
 	})
 
 	// ------------------------------
-	// 🧪 Example 4 — Demo (simulate navigation)
+	// Example 4 — Demo (simulate navigation)
 	// ------------------------------
 	r.GET("/demo", func(c *gin.Context) {
 		results1, next1, _ := paginator.NextWithToken("")
@@ -96,7 +96,7 @@ func main() {
 		})
 	})
 
-	fmt.Println("🚀 Server running at http://localhost:8080")
+	fmt.Println("Server running at http://localhost:8080")
 	fmt.Println("➡ http://localhost:8080/users/basic")
 	fmt.Println("➡ http://localhost:8080/users?pageToken=<token>")
 	fmt.Println("➡ http://localhost:8080/users/previous?pageToken=<token>")
