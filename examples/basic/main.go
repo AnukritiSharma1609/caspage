@@ -14,10 +14,10 @@ func main() {
 	r := gin.Default()
 
 	// Cassandra connection setup
-	cluster := gocql.NewCluster("127.0.0.1")
-	cluster.Keyspace = "merchant_platform"
+	cluster := gocql.NewCluster("provide_your_host")
+	cluster.Keyspace = "provide_your_keyspace"
 	session, err := cluster.CreateSession()
-	paginator := core.NewPaginator(&core.RealSession{Session: session}, "SELECT * FROM user_role_mapping_v2", core.Options{PageSize: 10})
+	paginator := core.NewPaginator(&core.RealSession{Session: session}, "SELECT * FROM users", core.Options{PageSize: 10})
 	if err != nil {
 		log.Fatalf("Failed to connect to Cassandra: %v", err)
 	}
@@ -27,9 +27,7 @@ func main() {
 	// 🥇 Example 1 — Next() (Stateful)
 	// ------------------------------
 	r.GET("/users/basic", func(c *gin.Context) {
-		// p := core.NewPaginator(session, "SELECT * FROM user_role_mapping_v2", core.Options{PageSize: 5000})
-
-		results, nextToken, err := paginator.Next()
+results, nextToken, err := paginator.Next()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -46,8 +44,6 @@ func main() {
 	// ------------------------------
 	r.GET("/users", func(c *gin.Context) {
 		token := c.Query("pageToken")
-
-		// p := core.NewPaginator(session, "SELECT * FROM user_role_mapping_v2", core.Options{PageSize: 10})
 		results, nextToken, err := paginator.NextWithToken(token)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -65,8 +61,6 @@ func main() {
 	// ------------------------------
 	r.GET("/users/previous", func(c *gin.Context) {
 		token := c.Query("pageToken")
-
-		// p := core.NewPaginator(session, "SELECT * FROM user_role_mapping_v2", core.Options{PageSize: 50})
 		results, prevToken, err := paginator.Previous(token)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -83,7 +77,6 @@ func main() {
 	// 🧪 Example 4 — CLI simulation (optional testing)
 	// ------------------------------
 	r.GET("/demo", func(c *gin.Context) {
-		// p := core.NewPaginator(session, "SELECT * FROM user_role_mapping_v2", core.Options{PageSize: 10})
 
 		// Forward pages
 		results, next1, _ := paginator.NextWithToken("")
