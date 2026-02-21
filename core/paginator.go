@@ -138,7 +138,6 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 	return results, nextToken, nil
 }
 
-
 // log safely invokes the optional logger hook.
 func (p *Paginator) log(event string, data map[string]interface{}) {
 	if p.Opts.Logger != nil {
@@ -167,5 +166,3 @@ func (p *Paginator) Previous(token string) ([]map[string]interface{}, string, er
 	// Directly fetch the previous page using the embedded previous token.
 	return p.fetchWithToken(env.Prev)
 }
-
-
