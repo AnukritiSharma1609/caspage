@@ -12,7 +12,6 @@ type PrometheusCollector struct {
 	pageFetchCount    prometheus.Counter
 	pageFetchDuration prometheus.Histogram
 	pageErrorCount    prometheus.Counter
-	activeTokens      prometheus.Gauge
 }
 
 // NewPrometheusCollector creates and registers Prometheus metrics.
@@ -31,17 +30,12 @@ func NewPrometheusCollector() *PrometheusCollector {
 			Name: "caspage_errors_total",
 			Help: "Total number of pagination errors",
 		}),
-		activeTokens: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "caspage_active_tokens_total",
-			Help: "Number of currently cached pagination tokens",
-		}),
 	}
 
 	prometheus.MustRegister(
 		c.pageFetchCount,
 		c.pageFetchDuration,
 		c.pageErrorCount,
-		c.activeTokens,
 	)
 
 	return c
@@ -54,10 +48,6 @@ func (c *PrometheusCollector) ObservePageFetch(rows int, duration time.Duration)
 
 func (c *PrometheusCollector) ObserveError(err error) {
 	c.pageErrorCount.Inc()
-}
-
-func (c *PrometheusCollector) ObserveActiveTokens(count int) {
-	c.activeTokens.Set(float64(count))
 }
 
 var _ core.MetricsCollector = (*PrometheusCollector)(nil) // compile-time check

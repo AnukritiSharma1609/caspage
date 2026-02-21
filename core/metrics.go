@@ -7,5 +7,4 @@ import "time"
 type MetricsCollector interface {
 	ObservePageFetch(rows int, duration time.Duration)
 	ObserveError(err error)
-	ObserveActiveTokens(count int)
 }

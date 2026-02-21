@@ -13,7 +13,6 @@ func TestPrometheusCollector(t *testing.T) {
 
 	m.ObservePageFetch(10, 50*time.Millisecond)
 	m.ObserveError(core.ErrQueryFailed)
-	m.ObserveActiveTokens(3)
 
 	// No direct output — just ensures it runs without panic
 }
