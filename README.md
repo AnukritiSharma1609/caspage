@@ -580,6 +580,7 @@ The [`examples/`](examples/) directory contains fully functional demos:
 
 - **[`basic/main.go`](examples/basic/main.go)** – Simple pagination with Gin
 - **[`restAPI/main.go`](examples/restAPI/main.go)** – Complete REST API with filters, logging, and Prometheus metrics
+- **[`restAPI/main.go`](examples/generics/main.go)** – Type-safe pagination using Go generics (`NextAs[T]`)
 
 **Run the REST API example:**
 
