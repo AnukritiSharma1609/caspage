@@ -1,4 +1,3 @@
-[![codecov](https://codecov.io/gh/AnukritiSharma1609/caspage/branch/main/graph/badge.svg)](https://codecov.io/gh/AnukritiSharma1609/caspage)
 [![Go Reference](https://pkg.go.dev/badge/github.com/AnukritiSharma1609/caspage.svg)](https://pkg.go.dev/github.com/AnukritiSharma1609/caspage)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/AnukritiSharma1609/caspage)](https://goreportcard.com/report/github.com/AnukritiSharma1609/caspage)
@@ -38,17 +37,19 @@ Pagination in Cassandra using `gocql` has always been tricky:
 | No direct API for cursor-based pagination           | Provides both stateful (`Next`) and stateless (`NextWithToken`) pagination |
 | Page state tokens aren't REST-safe                  | Encodes and decodes them into portable Base64 tokens             |
 | Requires manual handling of iterators               | Automatically manages page tokens and iterator lifecycle         |
-| No previous page or cache support                   | Built-in token cache with `Previous()` navigation                |
+| No previous page support                            | Truly stateless backward navigation — previous token is embedded in each token |
 | No built-in metrics, logging, or filters            | Ships with Prometheus hooks, structured logging, and query filters|
 | No context awareness                                | Supports `context.Context` for cancellation and timeouts         |
-| Complex filter handling                             | Dynamic `WHERE` clause building with operators (`>`, `<`, `IN`)  |
+| Complex filter handling                             | Dynamic `WHERE` clause building with operators (`>`, `<`, `IN`) |
+| No type safety on results                           | Generic helpers return typed structs instead of map[string]interface{}  |
 
 ---
 
 ## Features
 
+- **Type-safe results** – Use generics (NextAs[T]) to get typed structs instead of raw maps
 - **Simple API** – Paginate results using just `Next()` or `NextWithToken()`
-- **Stateless pagination** – Tokens can be safely shared via REST APIs
+- **Truly stateless pagination** – Tokens are self-contained and work across distributed instances
 - **Bidirectional navigation** – Move forward and backward between pages
 - **Dynamic filters** – Add `WHERE` clauses with operators (`=`, `>`, `<`, `>=`, `<=`, `IN`)
 - **Token cache** – Keep track of visited tokens in memory for backward navigation
@@ -86,8 +87,14 @@ import (
     "github.com/AnukritiSharma1609/caspage/core"
 )
 
+type User struct {
+    ID    string `cql:"user_id"`
+    Name  string `cql:"name"`
+    Email string `cql:"email"`
+}
+
 func main() {
-    // 1️⃣ Connect to Cassandra
+    // Connect to Cassandra
     cluster := gocql.NewCluster("127.0.0.1")
     cluster.Keyspace = "my_keyspace"
     session, err := cluster.CreateSession()
@@ -96,29 +103,29 @@ func main() {
     }
     defer session.Close()
 
-    // 2️⃣ Create a paginator
+    // Create a paginator
     paginator := core.NewPaginator(
         &core.RealSession{Session: session},
         "SELECT * FROM users",
         core.Options{PageSize: 100},
     )
 
-    // 3️⃣ Fetch first page
-    results, nextToken, err := paginator.Next()
+    // Fetch first page with type safety
+    users, nextToken, err := core.NextAs[User](paginator)
     if err != nil {
         log.Fatal(err)
     }
 
-    fmt.Printf("Fetched %d rows\n", len(results))
-    fmt.Printf("Next token: %s\n", nextToken)
+    fmt.Printf("Fetched %d users\n", len(users))
+    fmt.Printf("First user: %s (%s)\n", users[0].Name, users[0].Email)
 
-    // 4️⃣ Fetch next page using token
+    // Fetch next page using token
     if nextToken != "" {
-        results2, nextToken2, err := paginator.NextWithToken(nextToken)
+        users2, nextToken2, err := core.NextWithTokenAs[User](paginator, nextToken)
         if err != nil {
             log.Fatal(err)
         }
-        fmt.Printf("Fetched %d more rows\n", len(results2))
+        fmt.Printf("Fetched %d more users\n", len(users2))
         fmt.Printf("Next token: %s\n", nextToken2)
     }
 }
@@ -131,36 +138,62 @@ func main() {
 ### Basic Pagination
 
 ```go
-// Create paginator
+type Product struct {
+    ID       string  `cql:"product_id"`
+    Name     string  `cql:"name"`
+    Price    float64 `cql:"price"`
+    Category string  `cql:"category"`
+}
+
 p := core.NewPaginator(
     &core.RealSession{Session: session},
     "SELECT * FROM products",
     core.Options{PageSize: 50},
 )
 
-// Fetch pages
-results, token, _ := p.Next()          // First page
-results2, token2, _ := p.NextWithToken(token)  // Second page
+// Returns []Product — no type assertions needed
+products, token, _ := core.NextAs[Product](p)
+products2, token2, _ := core.NextWithTokenAs[Product](p, token)
+```
+
+### Raw Map Results (Untyped)
+If you don't need type safety, the original API still works:
+
+```go
+p := core.NewPaginator(
+    &core.RealSession{Session: session},
+    "SELECT * FROM products",
+    core.Options{PageSize: 50},
+)
+
+results, token, _ := p.Next()                      // []map[string]interface{}
+results2, token2, _ := p.NextWithToken(token)       // []map[string]interface{}
 ```
 
 ### Pagination with Filters
 
 ```go
-// Apply dynamic filters
+type Order struct {
+    OrderID string  `cql:"order_id"`
+    UserID  string  `cql:"user_id"`
+    Amount  float64 `cql:"amount"`
+    Status  string  `cql:"status"`
+}
+
 p := core.NewPaginator(
     &core.RealSession{Session: session},
     "SELECT * FROM orders",
     core.Options{
         PageSize: 100,
         Filters: map[string]interface{}{
-            "user_id":    "12345",          // WHERE user_id = ?
-            "amount >":   1000,              // AND amount > ?
-            "status IN":  []string{"pending", "approved"}, // AND status IN (?, ?)
+            "user_id":    "12345",                          // WHERE user_id = ?
+            "amount >":   1000,                              // AND amount > ?
+            "status IN":  []string{"pending", "approved"},   // AND status IN (?, ?)
         },
     },
 )
 
-results, token, _ := p.Next()
+orders, token, _ := core.NextAs[Order](p)
 ```
 
 **Supported filter operators:**
@@ -171,17 +204,16 @@ results, token, _ := p.Next()
 ### Column Selection
 
 ```go
-// Fetch only specific columns
 p := core.NewPaginator(
     &core.RealSession{Session: session},
     "SELECT * FROM users",  // "*" will be replaced
     core.Options{
         PageSize: 50,
-        Columns: []string{"user_id", "name", "email"}, // Only fetch these
+        Columns: []string{"user_id", "name", "email"},
     },
 )
 
-results, token, _ := p.Next()
+users, token, _ := core.NextAs[User](p)
 ```
 
 ### Context-Aware Queries (Timeouts & Cancellation)
@@ -209,20 +241,26 @@ if err != nil {
 
 ### Backward Navigation
 
+Backward navigation is truly stateless — each token embeds a reference to the previous token, so no server-side cache is needed. This works correctly across horizontally scaled services.
+
 ```go
 // Navigate forward
 page1, token1, _ := p.NextWithToken("")
 page2, token2, _ := p.NextWithToken(token1)
 page3, token3, _ := p.NextWithToken(token2)
 
-// Navigate backward
+// Navigate backward — no cache required
 previousPage, prevToken, err := p.Previous(token3)
-if err != nil {
-    // No previous token available
-}
+// prevToken contains token2's state, so you can keep going back
 ```
 
-**Note:** Backward navigation requires token caching. By default, the cache stores the last 10 tokens.
+**Note:** Each token is a self-contained Base64-encoded payload:
+{
+  "state": "<cassandra_page_state>",
+  "prev": "<previous_token>"
+}
+
+Tokens work across any number of service instances.No shared state (Redis, Memcached, etc.) is needed.Each token is slightly larger (~2x) since it carries its parent
 
 ### Structured Logging
 
@@ -267,7 +305,6 @@ results, token, _ := p.Next()
 // - caspage_page_fetch_duration_seconds (histogram)
 // - caspage_rows_fetched_total (counter)
 // - caspage_errors_total (counter by type)
-// - caspage_active_tokens (gauge)
 ```
 
 Expose metrics endpoint:
@@ -284,6 +321,12 @@ http.ListenAndServe(":2112", nil)
 ```go
 import "github.com/gin-gonic/gin"
 
+type User struct {
+    ID    string `cql:"user_id" json:"id"`
+    Name  string `cql:"name"    json:"name"`
+    Email string `cql:"email"   json:"email"`
+}
+
 r := gin.Default()
 
 r.GET("/api/users", func(c *gin.Context) {
@@ -296,14 +339,14 @@ r.GET("/api/users", func(c *gin.Context) {
         core.Options{PageSize: pageSize},
     )
 
-    results, nextToken, err := p.NextWithToken(pageToken)
+    users, nextToken, err := core.NextWithTokenAs[User](p, pageToken)
     if err != nil {
         c.JSON(500, gin.H{"error": err.Error()})
         return
     }
 
     c.JSON(200, gin.H{
-        "data":      results,
+        "data":      users,
         "nextToken": nextToken,
         "hasMore":   nextToken != "",
     })
@@ -336,7 +379,6 @@ type Paginator struct {
     Session  CassandraSession
     Query    string
     PageSize int
-    Cache    *TokenCache
     Opts     Options
 }
 ```
@@ -384,28 +426,54 @@ func (p *Paginator) NextWithToken(token string) ([]map[string]interface{}, strin
 
 #### `Previous(currentToken string)`
 
-Navigates to the previous page using the token cache. Returns results, previous token, and error.
+Navigates to the previous page by extracting the embedded previous token. Returns results, previous token, and error.
 
 ```go
 func (p *Paginator) Previous(currentToken string) ([]map[string]interface{}, string, error)
 ```
 
-### Token Management
+Generic helpers:
 
-#### `EncodeToken(state []byte)`
+#### `NextAs[T]`
 
-Encodes Cassandra page state into a Base64 URL-safe token.
+Fetches the next page and maps results to typed structs using cql struct tags.
 
 ```go
-func EncodeToken(state []byte) string
+func NextAs[T any](p *Paginator) ([]T, string, error)
+```
+
+#### `NextWithTokenAs[T]`
+
+Fetches the next page using a token and maps results to typed structs.
+
+```go
+func NextWithTokenAs[T any](p *Paginator, token string) ([]T, string, error)
+```
+
+Struct tag mapping:
+ 
+ ```go
+type MyRow struct {
+    FieldName string `cql:"column_name"` // Maps to Cassandra column "column_name"
+}
+```
+
+### Token Management
+
+#### `EncodeToken(state []byte, prevToken string)`
+
+Encodes Cassandra page state and the previous token into a self-contained Base64 URL-safe token.
+
+```go
+func EncodeToken(state []byte, prevToken string) string
 ```
 
 #### `DecodeToken(token string)`
 
-Decodes a Base64 token back into Cassandra page state.
+Decodes a Base64 token back into Cassandra page state and the previous token.
 
 ```go
-func DecodeToken(token string) ([]byte, error)
+func DecodeToken(token string) (state []byte, prevToken string, err error)
 ```
 
 ### Error Types
@@ -435,15 +503,6 @@ core.Options{
 - **Background jobs:** 500-1000 rows
 - **Bulk exports:** 1000-5000 rows
 
-### Token Cache Size
-
-By default, the cache stores the last **10 tokens**. Modify in source if needed:
-
-```go
-// In core/paginator.go:28
-Cache: NewTokenCache(20), // Keep 20 tokens instead of 10
-```
-
 ### Filters
 
 Filters are applied as `WHERE` or `AND` clauses automatically.
@@ -467,9 +526,15 @@ SELECT * FROM users WHERE age >= ? AND status = ? AND region IN (?, ?)
 
 ### Thread Safety
 
-- `TokenCache` is protected by a mutex
 - Safe for concurrent requests
 - Each paginator instance maintains its own cache
+- Each paginator instance is independent
+- Truly Stateless Backward Navigation
+- Unlike pagination libraries that rely on server-side caches, caspage embeds the previous token directly in each pagination token. This means:
+No in-memory cache required
+Works across horizontally scaled services behind a load balancer
+No shared state (Redis, Memcached) needed
+Tokens are fully self-contained and portable
 
 ### Error Handling
 
@@ -498,7 +563,6 @@ if err != nil {
 - `caspage_page_fetch_duration_seconds` – Query latency
 - `caspage_rows_fetched_total` – Total rows fetched
 - `caspage_errors_total` – Error count by type
-- `caspage_active_tokens` – Current cache size
 
 ### Performance Considerations
 
