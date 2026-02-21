@@ -21,8 +21,8 @@ func main() {
 	r := gin.Default()
 
 	// Connect to Cassandra
-	cluster := gocql.NewCluster("127.0.0.1")
-	cluster.Keyspace = "merchant_platform"
+	cluster := gocql.NewCluster("provide_your_host")
+	cluster.Keyspace = "provide_your_keyspace"
 	cluster.Consistency = gocql.Quorum
 	session, err := cluster.CreateSession()
 	if err != nil {
@@ -50,7 +50,7 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		p := core.NewPaginator(&core.RealSession{Session: session}, "SELECT * FROM user_role_mapping_v2", core.Options{
+		p := core.NewPaginator(&core.RealSession{Session: session}, "SELECT * FROM users", core.Options{
 			PageSize: pageSize,
 			Context:  ctx,
 			Filters:  filters,
