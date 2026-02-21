@@ -1,7 +1,6 @@
 package core_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/AnukritiSharma1609/caspage/core"
@@ -46,7 +45,6 @@ func TestPaginator_NextWithToken(t *testing.T) {
 		Session:  &mockSession{}, // ✅ interface mock works now
 		Query:    "SELECT * FROM users",
 		PageSize: 10,
-		Cache:    core.NewTokenCache(10),
 		Opts:     core.Options{},
 	}
 
@@ -59,20 +57,11 @@ func TestPaginator_NextWithToken(t *testing.T) {
 	}
 }
 
-func TestPaginator_Previous_TokenNotFound(t *testing.T) {
-	p := &core.Paginator{Cache: core.NewTokenCache(5)}
-	_, _, err := p.Previous("not_found")
-	if !errors.Is(err, core.ErrNoPrevToken) {
-		t.Errorf("expected ErrPreviousTokenNotFound, got %v", err)
-	}
-}
-
 func TestPaginator_Next(t *testing.T) {
 	p := &core.Paginator{
 		Session:  &mockSession{},
 		Query:    "SELECT * FROM users",
 		PageSize: 10,
-		Cache:    core.NewTokenCache(10),
 		Opts:     core.Options{},
 	}
 

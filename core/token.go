@@ -2,27 +2,49 @@ package core
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 )
 
-// EncodeToken converts the raw Cassandra page state into a Base64 URL-safe token.
-// This can be safely used in URLs or API responses.
-func EncodeToken(state []byte) string {
-	if len(state) == 0 {
-		return ""
-	}
-	return base64.URLEncoding.EncodeToString(state)
+// TokenEnvelope wraps both current Cassandra page state and previous token
+type TokenEnvelope struct {
+	State []byte `json:"state,omitempty"`
+	Prev  string `json:"prev,omitempty"`
 }
 
-// DecodeToken converts a Base64 token back into Cassandra-compatible page state bytes.
-func DecodeToken(token string) ([]byte, error) {
-	if token == "" {
-		return nil, nil
+// EncodeToken converts a TokenEnvelope into a base64-encoded JSON string
+func EncodeToken(state []byte, prev string) string {
+	if len(state) == 0 && prev == "" {
+		return ""
 	}
 
-	state, err := base64.URLEncoding.DecodeString(token)
-	if err != nil {
-		return nil, fmt.Errorf("invalid pagination token: %w", err)
+	env := TokenEnvelope{
+		State: state,
+		Prev:  prev,
 	}
-	return state, nil
+
+	b, err := json.Marshal(env)
+	if err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+// DecodeToken decodes a base64 token into a TokenEnvelope
+func DecodeToken(token string) (*TokenEnvelope, error) {
+	if token == "" {
+		return &TokenEnvelope{}, nil
+	}
+
+	b, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base64 token: %w", err)
+	}
+
+	var env TokenEnvelope
+	if err := json.Unmarshal(b, &env); err != nil {
+		return nil, fmt.Errorf("invalid token structure: %w", err)
+	}
+
+	return &env, nil
 }

@@ -34,7 +34,7 @@ func main() {
 	collector := metrics.NewPrometheusCollector()
 
 	// ------------------------------
-	// /users endpoint with pagination, filters, logging, and metrics
+	// /users endpoint with stateless pagination, filters, logging, and metrics
 	// ------------------------------
 	r.GET("/users", func(c *gin.Context) {
 		pageToken := c.Query("pageToken")

@@ -10,7 +10,6 @@ type Paginator struct {
 	Session  CassandraSession
 	Query    string
 	PageSize int
-	Cache    *TokenCache
 	Opts     Options
 }
 
@@ -25,7 +24,6 @@ func NewPaginator(session CassandraSession, query string, Opts Options) *Paginat
 		Session:  session,
 		Query:    query,
 		PageSize: pageSize,
-		Cache:    NewTokenCache(10), // keep history of 10 tokens
 		Opts:     Opts,
 	}
 }
@@ -35,22 +33,19 @@ func (p *Paginator) NextWithToken(token string) ([]map[string]interface{}, strin
 	if err != nil {
 		return nil, "", err
 	}
-	p.Cache.Add(nextToken)
 
-	if p.Opts.Metrics != nil {
-		p.Opts.Metrics.ObserveActiveTokens(p.Cache.Size())
-	}
 	return results, nextToken, nil
 }
 
 // fetchWithToken executes the paginated Cassandra query and returns results and the next page token.
 func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, string, error) {
-	var state []byte
+	var env *TokenEnvelope
 	var err error
+	var prev string
 
 	// 1️⃣ Decode the page token if provided
 	if token != "" {
-		state, err = DecodeToken(token)
+		env, err = DecodeToken(token)
 		if err != nil {
 			p.log("invalid_token", map[string]interface{}{
 				"token": token,
@@ -61,6 +56,9 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 			}
 			return nil, "", ErrInvalidToken
 		}
+		prev = token // current token becomes "prev" for the next page
+	} else {
+		env = &TokenEnvelope{}
 	}
 
 	// 2️⃣ Build the query string dynamically (columns + filters)
@@ -78,8 +76,8 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 	q := p.Session.Query(queryStr, bindValues...).PageSize(p.PageSize)
 
 	// 3️⃣ Apply page state if resuming from token
-	if len(state) > 0 {
-		q = q.PageState(state)
+	if len(env.State) > 0 {
+		q = q.PageState(env.State)
 	}
 
 	// 4️⃣ Apply context if present (for timeout/cancellation)
@@ -104,7 +102,7 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 	}
 
 	duration := time.Since(start)
-	next := iter.PageState()
+	nextState := iter.PageState()
 
 	// 5️⃣ Handle query errors
 	if err := iter.Close(); err != nil {
@@ -124,7 +122,7 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 	// 6️⃣ Log success
 	p.log("page_fetched", map[string]interface{}{
 		"rows_fetched":  len(results),
-		"next_token":    len(next) > 0,
+		"next_token":    len(nextState) > 0,
 		"duration_ms":   duration.Milliseconds(),
 		"query_filters": p.Opts.Filters,
 	})
@@ -134,8 +132,12 @@ func (p *Paginator) fetchWithToken(token string) ([]map[string]interface{}, stri
 		p.Opts.Metrics.ObservePageFetch(len(results), duration)
 	}
 
-	return results, EncodeToken(next), nil
+	// 8️⃣ Encode next token with embedded "prev"
+	nextToken := EncodeToken(nextState, prev)
+
+	return results, nextToken, nil
 }
+
 
 // log safely invokes the optional logger hook.
 func (p *Paginator) log(event string, data map[string]interface{}) {
@@ -150,16 +152,20 @@ func (p *Paginator) Next() ([]map[string]interface{}, string, error) {
 	return p.NextWithToken("")
 }
 
-func (p *Paginator) Previous(currentToken string) ([]map[string]interface{}, string, error) {
-	prevToken, ok := p.Cache.Previous(currentToken)
-	if !ok {
-		return nil, "", fmt.Errorf("%w: %q", ErrNoPrevToken, prevToken)
-	}
-
-	results, nextToken, err := p.fetchWithToken(prevToken)
+// Previous navigates one page backward using the embedded "prev" token.
+// It decodes the given token, extracts the previous token inside it, and fetches that page.
+func (p *Paginator) Previous(token string) ([]map[string]interface{}, string, error) {
+	env, err := DecodeToken(token)
 	if err != nil {
 		return nil, "", err
 	}
 
-	return results, nextToken, nil
+	if env.Prev == "" {
+		return nil, "", fmt.Errorf("no previous page available")
+	}
+
+	// Directly fetch the previous page using the embedded previous token.
+	return p.fetchWithToken(env.Prev)
 }
+
+
